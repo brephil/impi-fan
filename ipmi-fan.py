@@ -5,16 +5,14 @@
 import sys,os,time
 
 ## CPU THRESHOLD TEMPS
-## A modern CPU can heat up from 35C to 60C in a second or two. The fan duty cycle is set based on this
-#e-5 2600 v3 max Tcase 79c... DC: 100% holds 64c, 50% holds 72c, 40% holds will not hold, 30% will not hold
 high_cpu_temp = 70             # will go HIGH when we hit
 med_high_cpu_temp = 65
 med_cpu_temp = 60              # will go MEDIUM when we hit, or drop below again
 med_low_cpu_temp =55
-low_cpu_temp = 50               # will go LOW when we fall below 45 again
+low_cpu_temp = 50               # will go LOW when we fall below again
 
 
-#SAS at 100% holds 68c, 50% holds 74c, 30% holds 79c
+#SAS 
 high_sas_temp = 90
 med_sas_temp = 85
 low_sas_temp = 80
