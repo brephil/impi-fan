@@ -2,8 +2,16 @@
 
 import sys, os, time, logging
 
-# Configure logging
-logging.basicConfig(filename='/var/log/ipmi_fan.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with rotation
+from logging.handlers import TimedRotatingFileHandler
+
+log_handler = TimedRotatingFileHandler('/var/log/ipmi-fan.log', when='midnight', interval=1, backupCount=5)
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_handler.setFormatter(log_formatter)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(log_handler)
 
 ## CPU THRESHOLD TEMPS
 high_cpu_temp = 70             # will go HIGH when we hit

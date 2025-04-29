@@ -39,8 +39,16 @@ z1_low = 5
 zone0 = ['CPU', 'VRM', 'DIMM']  # FAN1-6 (Compute Resources)
 zone1 = ['SAS', 'HDD', 'PCH']   # FANA and FANB (Storage and PCI)
 
-# Configure logging
-logging.basicConfig(filename='/var/log/ipmi-fan.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with rotation
+from logging.handlers import TimedRotatingFileHandler
+
+log_handler = TimedRotatingFileHandler('/var/log/ipmi-fan.log', when='midnight', interval=1, backupCount=5)
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_handler.setFormatter(log_formatter)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(log_handler)
 
 def get_temps():
     stream = os.popen('ipmitool -c sdr type Temperature')
