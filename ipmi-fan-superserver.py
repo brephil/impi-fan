@@ -1,3 +1,5 @@
+# This works for Supermicro SuperServer X10DRU-i+ motherboard.
+
 import sys, os, time, logging
 
 # Configure logging
