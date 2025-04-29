@@ -7,6 +7,19 @@ SOURCE_DIR="."  # Update this path to where your scripts are located
 DEST_BIN_DIR="/usr/bin"
 DEST_SYSTEMD_DIR="/etc/systemd/system"
 
+# Check if the service is already enabled and active
+if systemctl is-enabled "$SERVICE_NAME" &> /dev/null; then
+    echo "Service $SERVICE_NAME is currently enabled. Stopping and disabling it..."
+
+    # Stop the service
+    sudo systemctl stop "$SERVICE_NAME"
+    echo "Stopped $SERVICE_NAME."
+
+    # Disable the service
+    sudo systemctl disable "$SERVICE_NAME"
+    echo "Disabled $SERVICE_NAME."
+fi
+
 # Prompt the user to choose which Python script to enable
 echo "Please select which Python script to enable:"
 for i in "${!PYTHON_SCRIPTS[@]}"; do

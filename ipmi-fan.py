@@ -1,6 +1,7 @@
 # This has been created and tested for Supermicro X10 motherboard
 
 import sys, os, time
+import logging  # Import the logging module
 
 ## CPU THRESHOLD TEMPS
 high_cpu_temp = 70             # will go HIGH when we hit
@@ -37,6 +38,9 @@ z1_low = 5
 # Define Cooling zones based on your setup
 zone0 = ['CPU', 'VRM', 'DIMM']  # FAN1-6 (Compute Resources)
 zone1 = ['SAS', 'HDD', 'PCH']   # FANA and FANB (Storage and PCI)
+
+# Configure logging
+logging.basicConfig(filename='/var/log/ipmi-fan.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_temps():
     stream = os.popen('ipmitool -c sdr type Temperature')
@@ -104,6 +108,7 @@ if current_fan_mode != 1:
 while True:
 
     # load temps
+    logging.info("Loading temperatures...")  # Log the action
     temps = get_temps()
 
     zone0_temps = populate_zone_temps(zone0, temps)
@@ -123,27 +128,36 @@ while True:
     # chassis uses both zones too cool the HDD and backplane so we need to monitor and overide
     if hdd_high_temp >= hdd_max_allowed:
         set_override_duty_cycle()
+        logging.info("Override duty cycle set due to high HDD temperature.")  # Log the action
     else:
         # check zone 0
         # escalate zone 0 duty cycle if needed
         if cpu_high_temp > high_cpu_temp or vrm_high_temp >= vrm_max_allowed or dimm_high_temp >= dimm_max_allowed:
             set_zone_duty_cycle(0, z0_high)
+            logging.info(f"Zone 0 duty cycle set to HIGH for CPU: {cpu_high_temp}, VRM: {vrm_high_temp}, DIMM: {dimm_high_temp}")
         elif cpu_high_temp > med_high_cpu_temp:
             set_zone_duty_cycle(0, z0_med_high)
+            logging.info(f"Zone 0 duty cycle set to MEDIUM-HIGH for CPU: {cpu_high_temp}")
         elif cpu_high_temp > med_cpu_temp:
             set_zone_duty_cycle(0, z0_med)
+            logging.info(f"Zone 0 duty cycle set to MEDIUM for CPU: {cpu_high_temp}")
         elif cpu_high_temp > med_low_cpu_temp:
             set_zone_duty_cycle(0, z0_med_low)
+            logging.info(f"Zone 0 duty cycle set to MEDIUM-LOW for CPU: {cpu_high_temp}")
         elif cpu_high_temp <= low_cpu_temp:
             set_zone_duty_cycle(0, z0_low)
+            logging.info(f"Zone 0 duty cycle set to LOW for CPU: {cpu_high_temp}")
 
         # check zone 1
         # escalate zone 1 duty cycle if needed
         if sas_high_temp > high_sas_temp or pch_high_temp >= pch_max_allowed or hdd_high_temp >= hdd_max_allowed:
             set_zone_duty_cycle(1, z1_high)
+            logging.info(f"Zone 1 duty cycle set to HIGH for SAS: {sas_high_temp}, HDD: {hdd_high_temp}, PCH: {pch_high_temp}")
         elif sas_high_temp > med_sas_temp:
             set_zone_duty_cycle(1, z1_med)
+            logging.info(f"Zone 1 duty cycle set to MEDIUM for SAS: {sas_high_temp}")
         elif sas_high_temp <= low_sas_temp:
             set_zone_duty_cycle(1, z1_low)
+            logging.info(f"Zone 1 duty cycle set to LOW for SAS: {sas_high_temp}")
 
     time.sleep(1)
