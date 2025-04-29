@@ -1,4 +1,4 @@
-# impi-fan
+# ipmi-fan-control
 
 For anyone wishing to use stock fans on their Supermicro build this will help keep the noise down and make sure there is plenty of cooling available on tap.
 
