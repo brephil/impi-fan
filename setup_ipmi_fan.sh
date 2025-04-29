@@ -29,7 +29,7 @@ source_path="${SOURCE_DIR}/${selected_script}"
 destination_path="${DEST_BIN_DIR}/${selected_script}"
 
 if [ -f "$source_path" ]; then
-    sudo mv "$source_path" "$destination_path"
+    sudo cp "$source_path" "$destination_path"
     echo "Moved $selected_script to $destination_path."
 else
     echo "Error: File $source_path not found!"
