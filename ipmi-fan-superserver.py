@@ -3,7 +3,7 @@
 import sys, os, time, logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='/var/log/ipmi_fan.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 ## CPU THRESHOLD TEMPS
 high_cpu_temp = 70             # will go HIGH when we hit
@@ -108,58 +108,60 @@ if current_fan_mode != 1:
 
 # Main loop here
 while True:
+    try:
+        # load temps
+        temps = get_temps()
 
-    # load temps
-    temps = get_temps()
+        zone0_temps = populate_zone_temps(zone0, temps)
+        zone1_temps = populate_zone_temps(zone1, temps)
 
-    zone0_temps = populate_zone_temps(zone0, temps)
-    zone1_temps = populate_zone_temps(zone1, temps)
+        # Check Zone 0 Temps
+        cpu1_high_temp = get_high_temp('CPU', zone0_temps)
+        vrm1_high_temp = get_high_temp('VRM', zone0_temps)
+        nic_high_temp = get_high_temp('NIC', zone0_temps)
+        dimm1_high_temp = get_high_temp('DIMM', zone0_temps)
 
-    # Check Zone 0 Temps
-    cpu1_high_temp = get_high_temp('CPU', zone0_temps)
-    vrm1_high_temp = get_high_temp('VRM', zone0_temps)
-    nic_high_temp = get_high_temp('NIC', zone0_temps)
-    dimm1_high_temp = get_high_temp('DIMM', zone0_temps)
+        # check Zone 1 Temps
+        cpu2_high_temp = get_high_temp('CPU', zone1_temps)
+        vrm2_high_temp = get_high_temp('VRM', zone1_temps)
+        dimm2_high_temp = get_high_temp('DIMM', zone1_temps)
 
-    # check Zone 1 Temps
-    cpu2_high_temp = get_high_temp('CPU', zone1_temps)
-    vrm2_high_temp = get_high_temp('VRM', zone1_temps)
-    dimm2_high_temp = get_high_temp('DIMM', zone1_temps)
+        # check zone 0
+        # escalate zone 0 duty cycle if needed
+        if cpu1_high_temp > high_cpu_temp or vrm1_high_temp >= vrm_max_allowed or dimm1_high_temp >= dimm_max_allowed:
+            set_zone_duty_cycle(0, z0_high)
+            logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above high threshold. Setting duty cycle to HIGH.")
+        elif cpu1_high_temp > med_high_cpu_temp:
+            set_zone_duty_cycle(0, z0_med_high)
+            logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
+        elif cpu1_high_temp > med_cpu_temp:
+            set_zone_duty_cycle(0, z0_med)
+            logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
+        elif cpu1_high_temp > med_low_cpu_temp:
+            set_zone_duty_cycle(0, z0_med_low)
+            logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
+        elif cpu1_high_temp <= low_cpu_temp:
+            set_zone_duty_cycle(0, z0_low)
+            logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is below low threshold. Setting duty cycle to LOW.")
 
-    # check zone 0
-    # escalate zone 0 duty cycle if needed
-    if cpu1_high_temp > high_cpu_temp or vrm1_high_temp >= vrm_max_allowed or dimm1_high_temp >= dimm_max_allowed:
-        set_zone_duty_cycle(0, z0_high)
-        logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above high threshold. Setting duty cycle to HIGH.")
-    elif cpu1_high_temp > med_high_cpu_temp:
-        set_zone_duty_cycle(0, z0_med_high)
-        logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
-    elif cpu1_high_temp > med_cpu_temp:
-        set_zone_duty_cycle(0, z0_med)
-        logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
-    elif cpu1_high_temp > med_low_cpu_temp:
-        set_zone_duty_cycle(0, z0_med_low)
-        logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
-    elif cpu1_high_temp <= low_cpu_temp:
-        set_zone_duty_cycle(0, z0_low)
-        logging.info(f"Zone 0: CPU temp {cpu1_high_temp} is below low threshold. Setting duty cycle to LOW.")
+        # check zone 1
+        # escalate zone 1 duty cycle if needed
+        if cpu2_high_temp > high_cpu_temp or vrm2_high_temp >= vrm_max_allowed or dimm2_high_temp >= dimm_max_allowed:
+            set_zone_duty_cycle(1, z0_high)
+            logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above high threshold. Setting duty cycle to HIGH.")
+        elif cpu2_high_temp > med_high_cpu_temp:
+            set_zone_duty_cycle(1, z0_med_high)
+            logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
+        elif cpu2_high_temp > med_cpu_temp:
+            set_zone_duty_cycle(1, z0_med)
+            logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
+        elif cpu2_high_temp > med_low_cpu_temp:
+            set_zone_duty_cycle(1, z0_med_low)
+            logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
+        elif cpu2_high_temp <= low_cpu_temp:
+            set_zone_duty_cycle(1, z0_low)
+            logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is below low threshold. Setting duty cycle to LOW.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
-    # check zone 1
-    # escalate zone 1 duty cycle if needed
-    if cpu2_high_temp > high_cpu_temp or vrm2_high_temp >= vrm_max_allowed or dimm2_high_temp >= dimm_max_allowed:
-        set_zone_duty_cycle(1, z0_high)
-        logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above high threshold. Setting duty cycle to HIGH.")
-    elif cpu2_high_temp > med_high_cpu_temp:
-        set_zone_duty_cycle(1, z0_med_high)
-        logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
-    elif cpu2_high_temp > med_cpu_temp:
-        set_zone_duty_cycle(1, z0_med)
-        logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
-    elif cpu2_high_temp > med_low_cpu_temp:
-        set_zone_duty_cycle(1, z0_med_low)
-        logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
-    elif cpu2_high_temp <= low_cpu_temp:
-        set_zone_duty_cycle(1, z0_low)
-        logging.info(f"Zone 1: CPU temp {cpu2_high_temp} is below low threshold. Setting duty cycle to LOW.")
-        
     time.sleep(1)
