@@ -1,6 +1,7 @@
 import sys, os, time, logging
 from logging.handlers import TimedRotatingFileHandler
 import configparser
+import threading
 
 # Set up logging with a rotating file handler
 log_handler = TimedRotatingFileHandler('/var/log/ipmi-fan.log', when='midnight', interval=1, backupCount=5)
@@ -11,7 +12,13 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-# Read configuration from file
+# Function to read configuration
+def load_configuration():
+    global high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp
+    global dimm_max_allowed, vrm_max_allowed, pch_max_allowed
+    global z0_high, z0_med_high, z0_med, z0_med_low, z0_low
+    global z1_high, z1_med_high, z1_med, z1_med_low, z1_low
+    global zone0, zone1
 config = configparser.ConfigParser()
 config.read('ipmi-fan-config.ini')
 
@@ -21,16 +28,19 @@ med_high_component_temp = int(config.get('Thresholds', 'med_high_component_temp'
 med_component_temp = int(config.get('Thresholds', 'med_component_temp'))
 med_low_component_temp = int(config.get('Thresholds', 'med_low_component_temp'))
 low_component_temp = int(config.get('Thresholds', 'low_component_temp'))
+
 # Max temperature thresholds for components
 dimm_max_allowed = int(config.get('Thresholds', 'dimm_max_allowed'))
 vrm_max_allowed = int(config.get('Thresholds', 'vrm_max_allowed'))
 pch_max_allowed = int(config.get('Thresholds', 'pch_max_allowed'))
+
 # Zone 0 duty cycles (%) for fans
 z0_high = int(config.get('DutyCycles', 'z0_high'))
 z0_med_high = int(config.get('DutyCycles', 'z0_med_high'))
 z0_med = int(config.get('DutyCycles', 'z0_med'))
 z0_med_low = int(config.get('DutyCycles', 'z0_med_low'))
 z0_low = int(config.get('DutyCycles', 'z0_low'))
+
 # Zone 1 duty cycles (%) for fans
 z1_high = int(config.get('DutyCycles', 'z1_high'))
 z1_med_high = int(config.get('DutyCycles', 'z1_med_high'))
@@ -41,6 +51,25 @@ z1_low = int(config.get('DutyCycles', 'z1_low'))
 # Zones for components (update this based on monitored components and their respective zones)
 zone0 = config.get('Zones', 'zone0').split(',')
 zone1 = config.get('Zones', 'zone1').split(',')
+
+# Function to run in a separate thread to reload configuration every minute
+def reload_config_thread():
+    while True:
+        try:
+            load_configuration()
+            logger.info("Configuration reloaded successfully.")
+        except Exception as e:
+            logger.error(f"Error reloading configuration: {e}")
+    time.sleep(60)  # Reload configuration every minute
+
+# Initial configuration load
+load_configuration()
+
+# Start the configuration reload thread
+config_thread = threading.Thread(target=reload_config_thread)
+config_thread.daemon = True  # Daemonize the thread so it will exit when the main program exits
+config_thread.start()
+
 def get_temps():
     """
     Fetch temperature readings from IPMI using ipmitool.
@@ -69,7 +98,7 @@ def set_override_duty_cycle():
 def set_zone_duty_cycle(zone, duty_cycle):
     """
     Set the fan duty cycle for a specific zone using IPMI raw commands.
-    
+
     :param zone: The zone number (0 or 1).
     :param duty_cycle: The desired duty cycle percentage.
     """
@@ -79,7 +108,7 @@ def set_zone_duty_cycle(zone, duty_cycle):
 def get_temp(dev, temps):
     """
     Get the temperature of a specific device from the list of temperatures.
-    
+
     :param dev: The device name.
     :param temps: A list of tuples containing device names and their corresponding temperatures.
     :return: The temperature of the specified device.
@@ -91,7 +120,7 @@ def get_temp(dev, temps):
 def get_high_temp(devices, temps):
     """
     Get the highest temperature among a list of devices from the temperature data.
-    
+
     :param devices: A list of device names to check.
     :param temps: A list of tuples containing device names and their corresponding temperatures.
     :return: The highest temperature found among the specified devices.
@@ -105,7 +134,7 @@ def get_high_temp(devices, temps):
 def populate_zone_temps(zone_devices, temps):
     """
     Populate a dictionary with temperatures of devices in a specific zone.
-    
+
     :param zone_devices: A list of device names in the zone.
     :param temps: A list of tuples containing device names and their corresponding temperatures.
     :return: A dictionary mapping device names to their temperatures.
@@ -122,7 +151,7 @@ def populate_zone_temps(zone_devices, temps):
 def get_fan_mode_code(fanmode):
     """
     Convert a fan mode name to its corresponding code.
-    
+
     :param fanmode: The fan mode name as a string.
     :return: The fan mode code as an integer, or 99 if the mode is unknown.
     """
@@ -140,13 +169,13 @@ def get_fan_mode_code(fanmode):
 def set_fan_mode(fanmode):
     """
     Set the fan mode using IPMI raw commands.
-    
+
     :param fanmode: The desired fan mode as a string.
     """
     mode = get_fan_mode_code(fanmode)
     if mode < 99:
         os.popen('ipmitool raw 0x30 0x45 0x01 ' + str(mode))
-        time.sleep(5) 
+        time.sleep(5)
         logging.info(f"Set fan mode to {fanmode}")
 
 current_fan_mode = get_fan_mode()
@@ -156,7 +185,7 @@ if current_fan_mode != 1:
 def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, med_threshold, med_low_threshold, low_threshold):
     """
     Check the maximum temperature in a zone and set the fan duty cycle accordingly.
-    
+
     :param zone: The zone number (0 or 1).
     :param temps: A dictionary mapping device names to their temperatures.
     :param high_threshold: The high temperature threshold for setting the fan duty cycle.
