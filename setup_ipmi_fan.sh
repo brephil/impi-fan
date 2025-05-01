@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define paths
-PYTHON_SCRIPT="ipmi-fan.py"
+PYTHON_SCRIPT="ipmi_fan.py"
 CONFIG_FILE="ipmi-fan-config.ini"
 SERVICE_NAME="ipmi-fan.service"
 SOURCE_DIR="."  # Update this path to where your scripts are located
