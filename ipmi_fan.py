@@ -120,7 +120,8 @@ def populate_zone_temps(zone_devices, temps):
         except Exception as e:
             logging.error(f"Error processing entry '{temp_entry}': {e}")
     
-    logging.info("Final device_temps:", device_temps)
+    logging.info(f"Final device_temps:{device_temps}")    
+
     return device_temps
 
 def get_fan_mode_code(fanmode):
@@ -194,18 +195,13 @@ while True:
     try:
         # Load temps
         temps = get_temps()
-        logger.info(f"temperatures: {temps}")
-
-        logger.info(f"Zone 0 devices: {zone0}")
-        zone0_temps = populate_zone_temps(zone0, temps)
-        logger.info(f"Zone 0 temperatures: {zone0_temps}")
         
+        zone0_temps = populate_zone_temps(zone0, temps)
         zone1_temps = populate_zone_temps(zone1, temps)
-        logger.info(f"Zone 1 temperatures: {zone1_temps}")
-
+        
         check_and_set_duty_cycle(0, zone0_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
-
         check_and_set_duty_cycle(1, zone1_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
+ 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
 
