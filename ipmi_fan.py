@@ -13,34 +13,33 @@ logger.addHandler(log_handler)
 
 # Read configuration from file
 config = configparser.ConfigParser()
-config.read('ipmi-fan-config.ini')
+config.read('/etc/ipmi-fan-control/ipmi-fan-config.ini')
 
-# Temperature thresholds for components
-high_component_temp = int(config.get('Thresholds', 'high_component_temp'))
-med_high_component_temp = int(config.get('Thresholds', 'med_high_component_temp'))
-med_component_temp = int(config.get('Thresholds', 'med_component_temp'))
-med_low_component_temp = int(config.get('Thresholds', 'med_low_component_temp'))
-low_component_temp = int(config.get('Thresholds', 'low_component_temp'))
-# Max temperature thresholds for components
-dimm_max_allowed = int(config.get('Thresholds', 'dimm_max_allowed'))
-vrm_max_allowed = int(config.get('Thresholds', 'vrm_max_allowed'))
-pch_max_allowed = int(config.get('Thresholds', 'pch_max_allowed'))
-# Zone 0 duty cycles (%) for fans
-z0_high = int(config.get('DutyCycles', 'z0_high'))
-z0_med_high = int(config.get('DutyCycles', 'z0_med_high'))
-z0_med = int(config.get('DutyCycles', 'z0_med'))
-z0_med_low = int(config.get('DutyCycles', 'z0_med_low'))
-z0_low = int(config.get('DutyCycles', 'z0_low'))
-# Zone 1 duty cycles (%) for fans
-z1_high = int(config.get('DutyCycles', 'z1_high'))
-z1_med_high = int(config.get('DutyCycles', 'z1_med_high'))
-z1_med = int(config.get('DutyCycles', 'z1_med'))
-z1_med_low = int(config.get('DutyCycles', 'z1_med_low'))
-z1_low = int(config.get('DutyCycles', 'z1_low'))
+# Temperature thresholds for components with default values
+high_component_temp = int(config.get('Thresholds', 'high_component_temp', fallback=70))
+med_high_component_temp = int(config.get('Thresholds', 'med_high_component_temp', fallback=65))
+med_component_temp = int(config.get('Thresholds', 'med_component_temp', fallback=60))
+med_low_component_temp = int(config.get('Thresholds', 'med_low_component_temp', fallback=55))
+low_component_temp = int(config.get('Thresholds', 'low_component_temp', fallback=50))
+
+# Zone 0 duty cycles (%) for fans with default values
+z0_high = int(config.get('DutyCycles', 'z0_high', fallback=100))
+z0_med_high = int(config.get('DutyCycles', 'z0_med_high', fallback=50))
+z0_med = int(config.get('DutyCycles', 'z0_med', fallback=30))
+z0_med_low = int(config.get('DutyCycles', 'z0_med_low', fallback=10))
+z0_low = int(config.get('DutyCycles', 'z0_low', fallback=5))
+
+# Zone 1 duty cycles (%) for fans with default values
+z1_high = int(config.get('DutyCycles', 'z1_high', fallback=100))
+z1_med_high = int(config.get('DutyCycles', 'z1_med_high', fallback=50))
+z1_med = int(config.get('DutyCycles', 'z1_med', fallback=30))
+z1_med_low = int(config.get('DutyCycles', 'z1_med_low', fallback=10))
+z1_low = int(config.get('DutyCycles', 'z1_low', fallback=5))
 
 # Zones for components (update this based on monitored components and their respective zones)
-zone0 = config.get('Zones', 'zone0').split(',')
-zone1 = config.get('Zones', 'zone1').split(',')
+zone0 = config.get('Zones', 'zone0',fallback='CPU1,MB_NIC,Vcpu1VRM,P1-DIMM,PCH,System').split(',')
+zone1 = config.get('Zones', 'zone1',fallback='CPU2,Vcpu2VRM,P2-DIMM,PCH,System').split(',')
+
 def get_temps():
     """
     Fetch temperature readings from IPMI using ipmitool.
