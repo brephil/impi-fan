@@ -2,10 +2,30 @@
 
 # Define paths
 PYTHON_SCRIPT="ipmi-fan.py"
+CONFIG_FILE="ipmi-fan-config.ini"
 SERVICE_NAME="ipmi-fan.service"
 SOURCE_DIR="."  # Update this path to where your scripts are located
 DEST_BIN_DIR="/usr/bin"
 DEST_SYSTEMD_DIR="/etc/systemd/system"
+DEST_CONFIG_DIR="/etc/ipmi-fan-control"
+
+# Create the destination configuration directory if it doesn't exist
+if [ ! -d "$DEST_CONFIG_DIR" ]; then
+    sudo mkdir -p "$DEST_CONFIG_DIR"
+    echo "Created directory $DEST_CONFIG_DIR."
+fi
+
+# Move the config file to /etc/ipmi-fan-control
+source_config_path="${SOURCE_DIR}/${CONFIG_FILE}"
+destination_config_path="${DEST_CONFIG_DIR}/${CONFIG_FILE}"
+
+if [ -f "$source_config_path" ]; then
+    sudo cp "$source_config_path" "$destination_config_path"
+    echo "Moved $CONFIG_FILE to $destination_config_path."
+else
+    echo "Error: File $source_config_path not found!"
+    exit 1
+fi
 
 # Check if the service is already enabled and active
 if systemctl is-enabled "$SERVICE_NAME" &> /dev/null; then
@@ -32,8 +52,8 @@ else
     exit 1
 fi
 
-# Update the ipmi-fan.service file with the selected script name
-sed -i "s|ExecStart=/usr/bin/python3 /usr/bin/ipmi-fan.py|ExecStart=/usr/bin/python3 /usr/bin/${PYTHON_SCRIPT}|g" "${SOURCE_DIR}/${SERVICE_NAME}"
+# Update the ipmi-fan.service file with the selected script name and config path
+sed -i "s|ExecStart=/usr/bin/python3 /usr/bin/ipmi-fan.py|ExecStart=/usr/bin/python3 /usr/bin/${PYTHON_SCRIPT} --config ${DEST_CONFIG_DIR}/${CONFIG_FILE}|g" "${SOURCE_DIR}/${SERVICE_NAME}"
 
 # Move ipmi-fan.service to /etc/systemd/system
 source_service_path="${SOURCE_DIR}/${SERVICE_NAME}"
