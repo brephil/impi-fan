@@ -112,13 +112,15 @@ def populate_zone_temps(zone_devices, temps):
     device_temps = {}
     
     for temp_entry in temps:
-        device, value, unit, status = temp_entry.strip().split(',')
-        
-        if device in zone_devices:
-            # Remove the ' Temp' suffix from the device name
-            clean_device_name = device.replace(' Temp', '')
-            device_temps[clean_device_name] = int(value)
+        try:
+            device, value, unit, status = temp_entry.strip().split(',')
+            if ' Temp' in device and device.replace(' Temp', '') in zone_devices:
+                clean_device_name = device.replace(' Temp', '')
+                device_temps[clean_device_name] = int(value)
+        except Exception as e:
+            logging.error(f"Error processing entry '{temp_entry}': {e}")
     
+    logging.info("Final device_temps:", device_temps)
     return device_temps
 
 def get_fan_mode_code(fanmode):
