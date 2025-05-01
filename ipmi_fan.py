@@ -120,8 +120,6 @@ def populate_zone_temps(zone_devices, temps):
         except Exception as e:
             logging.error(f"Error processing entry '{temp_entry}': {e}")
     
-    logging.info(f"Final device_temps:{device_temps}")    
-
     return device_temps
 
 def get_fan_mode_code(fanmode):
@@ -175,6 +173,7 @@ def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, me
         if temps[device] > max_temp:
             max_temp = temps[device]
         logging.info(f"Device: {device}, Temperature: {temps[device]}")
+    logging.info(f"Max temperature in Zone {zone}: {max_temp}")
     if max_temp > high_threshold:
         set_zone_duty_cycle(zone, z0_high if zone == 0 else z1_high)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above high threshold. Setting duty cycle to HIGH.")
@@ -187,7 +186,7 @@ def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, me
     elif max_temp > med_low_threshold:
         set_zone_duty_cycle(zone, z0_med_low if zone == 0 else z1_med_low)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
-    elif max_temp <= low_threshold:
+    else:
         set_zone_duty_cycle(zone, z0_low if zone == 0 else z1_low)
         logging.info(f"Zone {zone}: Max temp {max_temp} is below low threshold. Setting duty cycle to LOW.")
 
@@ -198,6 +197,9 @@ while True:
         
         zone0_temps = populate_zone_temps(zone0, temps)
         zone1_temps = populate_zone_temps(zone1, temps)
+
+        logger.debug(f"Zone 0 temperatures: {zone0_temps}")
+        logger.debug(f"Zone 1 temperatures: {zone1_temps}")
         
         check_and_set_duty_cycle(0, zone0_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
         check_and_set_duty_cycle(1, zone1_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
