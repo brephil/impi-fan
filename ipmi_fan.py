@@ -112,7 +112,7 @@ def populate_zone_temps(zone_devices, temps):
     zone_temps = {}
     for temp in temps:
         for device in zone_devices:
-            if device in temp[0]:
+            if temp[0].startswith(device):
                 # Extract the temperature value
                 temp_value = int(temp[1].split()[0])
                 zone_temps[device] = temp_value
@@ -189,7 +189,9 @@ while True:
     try:
         # Load temps
         temps = get_temps()
+        logger.info(f"temperatures: {temps}")
 
+        logger.info(f"Zone 0 devices: {zone0}")
         zone0_temps = populate_zone_temps(zone0, temps)
         logger.info(f"Zone 0 temperatures: {zone0_temps}")
         
