@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import patch, mock_open, MagicMock
 from io import StringIO
 
-# Assuming the script is named ipmi-fan-superserver.py
-from ipmi_fan_superserver import (
+# Assuming the script is named ipmi-fan.py
+from ipmi_fan import (
     get_high_temp,
     check_and_set_duty_cycle,
     set_zone_duty_cycle,
