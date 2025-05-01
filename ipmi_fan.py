@@ -109,21 +109,17 @@ def populate_zone_temps(zone_devices, temps):
     :param temps: A list of tuples containing device names and their corresponding temperatures.
     :return: A dictionary mapping device names to their temperatures.
     """
-    zone_temps = {}
-    for temp in temps:
-        parts = temp[0].split(',')
-        logging.info(f"parts: {parts}")
-        if len(parts) > 1:
-            device_name = parts[0]
-            for device in zone_devices:
-                if device_name.startswith(device):
-                    # Extract the temperature value
-                    try:
-                        temp_value = int(temp[1].split()[0])
-                        zone_temps[device] = temp_value
-                    except ValueError as e:
-                        logging.info(f"Error parsing temperature for {temp[0]}: {e}")
-    return zone_temps
+    device_temps = {}
+    
+    for temp_entry in temps:
+        device, value, unit, status = temp_entry.strip().split(',')
+        
+        if device in zone_devices:
+            # Remove the ' Temp' suffix from the device name
+            clean_device_name = device.replace(' Temp', '')
+            device_temps[clean_device_name] = int(value)
+    
+    return device_temps
 
 def get_fan_mode_code(fanmode):
     """
