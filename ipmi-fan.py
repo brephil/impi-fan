@@ -1,47 +1,8 @@
-# This has been created and tested for Supermicro X10 motherboard
-
-import sys, os, time
-import logging  # Import the logging module
-
-## CPU THRESHOLD TEMPS
-high_cpu_temp = 70             # will go HIGH when we hit
-med_high_cpu_temp = 65
-med_cpu_temp = 60              # will go MEDIUM when we hit, or drop below again
-med_low_cpu_temp = 55
-low_cpu_temp = 50               # will go LOW when we fall below again
-
-# SAS 
-high_sas_temp = 90
-med_sas_temp = 85
-low_sas_temp = 80
-
-# Max Temp overides
-hdd_max_allowed = 50
-dimm_max_allowed = 85  # part HMA84GR7MFR4N-TF
-vrm_max_allowed = 85
-pch_max_allowed = 80
-
-# Zone 0 duty cycles
-z0_high = 100
-z0_med_high = 50
-z0_med = 30
-z0_med_low = 10
-z0_low = 5
-
-# Zone 1 duty cycles
-z1_high = 100
-z1_med_high = 50
-z1_med = 40
-z1_med_low = 10
-z1_low = 5
-
-# Define Cooling zones based on your setup
-zone0 = ['CPU', 'VRM', 'DIMM']  # FAN1-6 (Compute Resources)
-zone1 = ['SAS', 'HDD', 'PCH']   # FANA and FANB (Storage and PCI)
-
-# Configure logging with rotation
+import sys, os, time, logging
 from logging.handlers import TimedRotatingFileHandler
+import configparser
 
+# Set up logging with a rotating file handler
 log_handler = TimedRotatingFileHandler('/var/log/ipmi-fan.log', when='midnight', interval=1, backupCount=5)
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 log_handler.setFormatter(log_formatter)
@@ -50,46 +11,121 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
+# Read configuration from file
+config = configparser.ConfigParser()
+config.read('ipmi-fan-config.ini')
+
+# Temperature thresholds for components
+high_component_temp = int(config.get('Thresholds', 'high_component_temp'))
+med_high_component_temp = int(config.get('Thresholds', 'med_high_component_temp'))
+med_component_temp = int(config.get('Thresholds', 'med_component_temp'))
+med_low_component_temp = int(config.get('Thresholds', 'med_low_component_temp'))
+low_component_temp = int(config.get('Thresholds', 'low_component_temp'))
+# Max temperature thresholds for components
+dimm_max_allowed = int(config.get('Thresholds', 'dimm_max_allowed'))
+vrm_max_allowed = int(config.get('Thresholds', 'vrm_max_allowed'))
+pch_max_allowed = int(config.get('Thresholds', 'pch_max_allowed'))
+# Zone 0 duty cycles (%) for fans
+z0_high = int(config.get('DutyCycles', 'z0_high'))
+z0_med_high = int(config.get('DutyCycles', 'z0_med_high'))
+z0_med = int(config.get('DutyCycles', 'z0_med'))
+z0_med_low = int(config.get('DutyCycles', 'z0_med_low'))
+z0_low = int(config.get('DutyCycles', 'z0_low'))
+# Zone 1 duty cycles (%) for fans
+z1_high = int(config.get('DutyCycles', 'z1_high'))
+z1_med_high = int(config.get('DutyCycles', 'z1_med_high'))
+z1_med = int(config.get('DutyCycles', 'z1_med'))
+z1_med_low = int(config.get('DutyCycles', 'z1_med_low'))
+z1_low = int(config.get('DutyCycles', 'z1_low'))
+
+# Zones for components (update this based on monitored components and their respective zones)
+zone0 = config.get('Zones', 'zone0').split(',')
+zone1 = config.get('Zones', 'zone1').split(',')
 def get_temps():
+    """
+    Fetch temperature readings from IPMI using ipmitool.
+    Returns a list of lines containing temperature data.
+    """
     stream = os.popen('ipmitool -c sdr type Temperature')
     return stream.readlines()
 
 def get_fan_mode():
+    """
+    Get the current fan mode using IPMI raw commands.
+    Returns an integer representing the fan mode.
+    """
     stream = os.popen('ipmitool raw 0x30 0x45 0x00')
     output = stream.read().strip()
+    logging.debug(f"Current fan mode: {output}")
     return int(output)
 
 def set_override_duty_cycle():
+    """
+    Set the duty cycle for both zones to high.
+    """
     set_zone_duty_cycle(0, z0_high)
     set_zone_duty_cycle(1, z1_high)
 
 def set_zone_duty_cycle(zone, duty_cycle):
+    """
+    Set the fan duty cycle for a specific zone using IPMI raw commands.
+    
+    :param zone: The zone number (0 or 1).
+    :param duty_cycle: The desired duty cycle percentage.
+    """
     os.popen('ipmitool raw 0x30 0x70 0x66 0x01 ' + str(zone) + ' ' + str(duty_cycle))
+    logging.debug(f"Set zone {zone} duty cycle to {duty_cycle}")
 
 def get_temp(dev, temps):
+    """
+    Get the temperature of a specific device from the list of temperatures.
+    
+    :param dev: The device name.
+    :param temps: A list of tuples containing device names and their corresponding temperatures.
+    :return: The temperature of the specified device.
+    """
     for temp in temps:
         if dev in temp[0]:
-            temp = temp[1]
-            return temp
+            return int(temp[1])
 
-def get_high_temp(dev, temps):
+def get_high_temp(devices, temps):
+    """
+    Get the highest temperature among a list of devices from the temperature data.
+    
+    :param devices: A list of device names to check.
+    :param temps: A list of tuples containing device names and their corresponding temperatures.
+    :return: The highest temperature found among the specified devices.
+    """
     dev_temp = 0
     for temp in temps:
-        if dev in temp[0]:
-            if dev_temp < int(temp[1]):
-                dev_temp = int(temp[1])
+        if any(device in temp[0] for device in devices):
+            dev_temp = max(dev_temp, int(temp[1]))
     return dev_temp
 
 def populate_zone_temps(zone_devices, temps):
-    zone_temps = []
+    """
+    Populate a dictionary with temperatures of devices in a specific zone.
+    
+    :param zone_devices: A list of device names in the zone.
+    :param temps: A list of tuples containing device names and their corresponding temperatures.
+    :return: A dictionary mapping device names to their temperatures.
+    """
+    zone_temps = {}
     for temp in temps:
         for device in zone_devices:
-            if device in temp and 'ns' not in temp:
-                output = list(temp.split(","))
-                zone_temps.append(output)
+            if device in temp[0]:
+                # Extract the temperature value
+                temp_value = int(temp[1].split()[0])
+                zone_temps[device] = temp_value
     return zone_temps
 
 def get_fan_mode_code(fanmode):
+    """
+    Convert a fan mode name to its corresponding code.
+    
+    :param fanmode: The fan mode name as a string.
+    :return: The fan mode code as an integer, or 99 if the mode is unknown.
+    """
     if fanmode == 'standard':
         return 0
     elif fanmode == 'full':
@@ -99,73 +135,68 @@ def get_fan_mode_code(fanmode):
     elif fanmode == 'heavyio':
         return 3
     else:
-        return 99  # illegal fan mode
+        return 99
 
 def set_fan_mode(fanmode):
+    """
+    Set the fan mode using IPMI raw commands.
+    
+    :param fanmode: The desired fan mode as a string.
+    """
     mode = get_fan_mode_code(fanmode)
     if mode < 99:
         os.popen('ipmitool raw 0x30 0x45 0x01 ' + str(mode))
         time.sleep(5) 
+        logging.info(f"Set fan mode to {fanmode}")
 
-# need to go to Full mode so we have unfettered control of Fans
 current_fan_mode = get_fan_mode()
 if current_fan_mode != 1:
     set_fan_mode("full")
 
-# Main loop here
+def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, med_threshold, med_low_threshold, low_threshold):
+    """
+    Check the maximum temperature in a zone and set the fan duty cycle accordingly.
+    
+    :param zone: The zone number (0 or 1).
+    :param temps: A dictionary mapping device names to their temperatures.
+    :param high_threshold: The high temperature threshold for setting the fan duty cycle.
+    :param med_high_threshold: The medium-high temperature threshold.
+    :param med_threshold: The medium temperature threshold.
+    :param med_low_threshold: The medium-low temperature threshold.
+    :param low_threshold: The low temperature threshold.
+    """
+    max_temp = 0
+    for device in temps:
+        if temps[device] > max_temp:
+            max_temp = temps[device]
+    if max_temp > high_threshold:
+        set_zone_duty_cycle(zone, z0_high if zone == 0 else z1_high)
+        logging.info(f"Zone {zone}: Max temp {max_temp} is above high threshold. Setting duty cycle to HIGH.")
+    elif max_temp > med_high_threshold:
+        set_zone_duty_cycle(zone, z0_med_high if zone == 0 else z1_med_high)
+        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
+    elif max_temp > med_threshold:
+        set_zone_duty_cycle(zone, z0_med if zone == 0 else z1_med)
+        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
+    elif max_temp > med_low_threshold:
+        set_zone_duty_cycle(zone, z0_med_low if zone == 0 else z1_med_low)
+        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
+    elif max_temp <= low_threshold:
+        set_zone_duty_cycle(zone, z0_low if zone == 0 else z1_low)
+        logging.info(f"Zone {zone}: Max temp {max_temp} is below low threshold. Setting duty cycle to LOW.")
+
 while True:
+    try:
+        # Load temps
+        temps = get_temps()
 
-    # load temps
-    logging.info("Loading temperatures...")  # Log the action
-    temps = get_temps()
+        zone0_temps = populate_zone_temps(zone0, temps)
+        zone1_temps = populate_zone_temps(zone1, temps)
 
-    zone0_temps = populate_zone_temps(zone0, temps)
-    zone1_temps = populate_zone_temps(zone1, temps)
+        check_and_set_duty_cycle(0, zone0_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
 
-    # Check Zone 0 Temps
-    cpu_high_temp = get_high_temp('CPU', zone0_temps)
-    vrm_high_temp = get_high_temp('VRM', zone0_temps)
-    dimm_high_temp = get_high_temp('DIMM', zone0_temps)
-
-    # check Zone 1 Temps
-    sas_high_temp = get_high_temp('SAS', zone1_temps)
-    hdd_high_temp = get_high_temp('HDD', zone1_temps)
-    pch_high_temp = get_high_temp('PCH', zone1_temps)
-
-    # check override temps first
-    # chassis uses both zones too cool the HDD and backplane so we need to monitor and overide
-    if hdd_high_temp >= hdd_max_allowed:
-        set_override_duty_cycle()
-        logging.info("Override duty cycle set due to high HDD temperature.")  # Log the action
-    else:
-        # check zone 0
-        # escalate zone 0 duty cycle if needed
-        if cpu_high_temp > high_cpu_temp or vrm_high_temp >= vrm_max_allowed or dimm_high_temp >= dimm_max_allowed:
-            set_zone_duty_cycle(0, z0_high)
-            logging.info(f"Zone 0 duty cycle set to HIGH for CPU: {cpu_high_temp}, VRM: {vrm_high_temp}, DIMM: {dimm_high_temp}")
-        elif cpu_high_temp > med_high_cpu_temp:
-            set_zone_duty_cycle(0, z0_med_high)
-            logging.info(f"Zone 0 duty cycle set to MEDIUM-HIGH for CPU: {cpu_high_temp}")
-        elif cpu_high_temp > med_cpu_temp:
-            set_zone_duty_cycle(0, z0_med)
-            logging.info(f"Zone 0 duty cycle set to MEDIUM for CPU: {cpu_high_temp}")
-        elif cpu_high_temp > med_low_cpu_temp:
-            set_zone_duty_cycle(0, z0_med_low)
-            logging.info(f"Zone 0 duty cycle set to MEDIUM-LOW for CPU: {cpu_high_temp}")
-        elif cpu_high_temp <= low_cpu_temp:
-            set_zone_duty_cycle(0, z0_low)
-            logging.info(f"Zone 0 duty cycle set to LOW for CPU: {cpu_high_temp}")
-
-        # check zone 1
-        # escalate zone 1 duty cycle if needed
-        if sas_high_temp > high_sas_temp or pch_high_temp >= pch_max_allowed or hdd_high_temp >= hdd_max_allowed:
-            set_zone_duty_cycle(1, z1_high)
-            logging.info(f"Zone 1 duty cycle set to HIGH for SAS: {sas_high_temp}, HDD: {hdd_high_temp}, PCH: {pch_high_temp}")
-        elif sas_high_temp > med_sas_temp:
-            set_zone_duty_cycle(1, z1_med)
-            logging.info(f"Zone 1 duty cycle set to MEDIUM for SAS: {sas_high_temp}")
-        elif sas_high_temp <= low_sas_temp:
-            set_zone_duty_cycle(1, z1_low)
-            logging.info(f"Zone 1 duty cycle set to LOW for SAS: {sas_high_temp}")
+        check_and_set_duty_cycle(1, zone1_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
     time.sleep(1)
