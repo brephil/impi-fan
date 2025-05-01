@@ -1,0 +1,37 @@
+CPU1 Temp,44,degrees C,ok
+CPU2 Temp,45,degrees C,ok
+PCH Temp,41,degrees C,ok
+System Temp,27,degrees C,ok
+Peripheral Temp,37,degrees C,ok
+MB_NIC_Temp1,58,degrees C,ok
+MB_NIC_Temp2,68,degrees C,ok
+Vcpu1VRM Temp,32,degrees C,ok
+Vcpu2VRM Temp,32,degrees C,ok
+VmemABVRM Temp,29,degrees C,ok
+VmemCDVRM Temp,30,degrees C,ok
+VmemEFVRM Temp,29,degrees C,ok
+VmemGHVRM Temp,30,degrees C,ok
+P1-DIMMA1 Temp,30,degrees C,ok
+P1-DIMMA2 Temp,,,ns
+P1-DIMMA3 Temp,,,ns
+P1-DIMMB1 Temp,32,degrees C,ok
+P1-DIMMB2 Temp,,,ns
+P1-DIMMB3 Temp,,,ns
+P1-DIMMC1 Temp,33,degrees C,ok
+P1-DIMMC2 Temp,,,ns
+P1-DIMMC3 Temp,,,ns
+P1-DIMMD1 Temp,33,degrees C,ok
+P1-DIMMD2 Temp,,,ns
+P1-DIMMD3 Temp,,,ns
+P2-DIMME1 Temp,33,degrees C,ok
+P2-DIMME2 Temp,,,ns
+P2-DIMME3 Temp,,,ns
+P2-DIMMF1 Temp,32,degrees C,ok
+P2-DIMMF2 Temp,,,ns
+P2-DIMMF3 Temp,,,ns
+P2-DIMMG1 Temp,30,degrees C,ok
+P2-DIMMG2 Temp,,,ns
+P2-DIMMG3 Temp,,,ns
+P2-DIMMH1 Temp,31,degrees C,ok
+P2-DIMMH2 Temp,,,ns
+P2-DIMMH3 Temp,,,ns

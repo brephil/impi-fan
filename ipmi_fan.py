@@ -168,6 +168,7 @@ def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, me
     for device in temps:
         if temps[device] > max_temp:
             max_temp = temps[device]
+        logging.info(f"Device: {device}, Temperature: {temps[device]}")
     if max_temp > high_threshold:
         set_zone_duty_cycle(zone, z0_high if zone == 0 else z1_high)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above high threshold. Setting duty cycle to HIGH.")
@@ -190,7 +191,10 @@ while True:
         temps = get_temps()
 
         zone0_temps = populate_zone_temps(zone0, temps)
+        logger.info(f"Zone 0 temperatures: {zone0_temps}")
+        
         zone1_temps = populate_zone_temps(zone1, temps)
+        logger.info(f"Zone 1 temperatures: {zone1_temps}")
 
         check_and_set_duty_cycle(0, zone0_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
 
