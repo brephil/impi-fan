@@ -41,6 +41,12 @@ thresholds = {
     'low': config['thresholds']['low_component_temp']
 }
 
+def get_component_thresholds(component_name, zone='zone0'):
+    if 'zones' in config and zone in config['zones']:
+        components = config['zones'][zone].get('components', {})
+        if component_name in components:
+            return components[component_name]['thresholds']
+    return None
 
 def get_temps():
     """
