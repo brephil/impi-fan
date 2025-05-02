@@ -5,7 +5,7 @@ Conflicts=getty@tty1.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/bin/ipmi-fan.py
+ExecStart=/usr/bin/python3 /usr/bin/ipmi_fan.py
 StandardInput=tty-force
 
 [Install]
