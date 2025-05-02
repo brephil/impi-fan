@@ -1,6 +1,7 @@
 import sys, os, time, logging
 from logging.handlers import TimedRotatingFileHandler
 import configparser
+import yaml
 
 # Set up logging with a rotating file handler
 log_handler = TimedRotatingFileHandler('/var/log/ipmi-fan.log', when='midnight', interval=1, backupCount=5)
@@ -11,34 +12,31 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-# Read configuration from file
-config = configparser.ConfigParser()
-config.read('/etc/ipmi-fan-control/ipmi-fan-config.ini')
+# Load YAML configuration
+with open('ipmi-fan-config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
-# Temperature thresholds for components with default values
-high_component_temp = int(config.get('Thresholds', 'high_component_temp', fallback=70))
-med_high_component_temp = int(config.get('Thresholds', 'med_high_component_temp', fallback=65))
-med_component_temp = int(config.get('Thresholds', 'med_component_temp', fallback=60))
-med_low_component_temp = int(config.get('Thresholds', 'med_low_component_temp', fallback=55))
-low_component_temp = int(config.get('Thresholds', 'low_component_temp', fallback=50))
+high_component_temp = config['thresholds']['high_component_temp']
+med_high_component_temp = config['thresholds']['med_high_component_temp']
+med_component_temp = config['thresholds']['med_component_temp']
+med_low_component_temp = config['thresholds']['med_low_component_temp']
+low_component_temp = config['thresholds']['low_component_temp']
 
-# Zone 0 duty cycles (%) for fans with default values
-z0_high = int(config.get('DutyCycles', 'z0_high', fallback=100))
-z0_med_high = int(config.get('DutyCycles', 'z0_med_high', fallback=50))
-z0_med = int(config.get('DutyCycles', 'z0_med', fallback=30))
-z0_med_low = int(config.get('DutyCycles', 'z0_med_low', fallback=10))
-z0_low = int(config.get('DutyCycles', 'z0_low', fallback=5))
+z0_high = config['duty_cycles']['z0']['high']
+z0_med_high = config['duty_cycles']['z0']['med_high']
+z0_med = config['duty_cycles']['z0']['med']
+z0_med_low = config['duty_cycles']['z0']['med_low']
+z0_low = config['duty_cycles']['z0']['low']
 
-# Zone 1 duty cycles (%) for fans with default values
-z1_high = int(config.get('DutyCycles', 'z1_high', fallback=100))
-z1_med_high = int(config.get('DutyCycles', 'z1_med_high', fallback=50))
-z1_med = int(config.get('DutyCycles', 'z1_med', fallback=30))
-z1_med_low = int(config.get('DutyCycles', 'z1_med_low', fallback=10))
-z1_low = int(config.get('DutyCycles', 'z1_low', fallback=5))
+z1_high = config['duty_cycles']['z1']['high']
+z1_med_high = config['duty_cycles']['z1']['med_high']
+z1_med = config['duty_cycles']['z1']['med']
+z1_med_low = config['duty_cycles']['z1']['med_low']
+z1_low = config['duty_cycles']['z1']['low']
 
-# Zones for components (update this based on monitored components and their respective zones)
-zone0 = config.get('Zones', 'zone0',fallback='CPU1,MB_NIC,Vcpu1VRM,P1-DIMM,PCH,System').split(',')
-zone1 = config.get('Zones', 'zone1',fallback='CPU2,Vcpu2VRM,P2-DIMM,PCH,System').split(',')
+zone0 = [component for component in config['zones']['zone0']['components']]
+zone1 = [component for component in config['zones']['zone1']['components']]
+
 
 def get_temps():
     """
@@ -179,21 +177,39 @@ def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, me
             max_temp = temps[device]
         logging.info(f"Device: {device}, Temperature: {temps[device]}")
     logging.info(f"Max temperature in Zone {zone}: {max_temp}")
-    if max_temp > high_threshold:
+    
+    # Define thresholds for each zone based on YAML configuration
+    if zone == 0:
+        high_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][0] for comp in config['zones']['zone0']['components']]
+        med_high_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][1] for comp in config['zones']['zone0']['components']]
+        med_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][2] for comp in config['zones']['zone0']['components']]
+        med_low_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][3] for comp in config['zones']['zone0']['components']]
+        low_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][4] for comp in config['zones']['zone0']['components']]
+
+    elif zone == 1:
+        high_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][0] for comp in config['zones']['zone1']['components']]
+        med_high_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][1] for comp in config['zones']['zone1']['components']]
+        med_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][2] for comp in config['zones']['zone1']['components']]
+        med_low_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][3] for comp in config['zones']['zone1']['components']]
+        low_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][4] for comp in config['zones']['zone1']['components']]
+
+    # Determine the appropriate duty cycle based on individual device thresholds
+    if any(temp > high_threshold for temp in high_thresholds):
         set_zone_duty_cycle(zone, z0_high if zone == 0 else z1_high)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above high threshold. Setting duty cycle to HIGH.")
-    elif max_temp > med_high_threshold:
+    elif any(temp > med_high_threshold for temp in med_high_thresholds):
         set_zone_duty_cycle(zone, z0_med_high if zone == 0 else z1_med_high)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
-    elif max_temp > med_threshold:
+    elif any(temp > med_threshold for temp in med_thresholds):
         set_zone_duty_cycle(zone, z0_med if zone == 0 else z1_med)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
-    elif max_temp > med_low_threshold:
+    elif any(temp > med_low_threshold for temp in med_low_thresholds):
         set_zone_duty_cycle(zone, z0_med_low if zone == 0 else z1_med_low)
         logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
     else:
         set_zone_duty_cycle(zone, z0_low if zone == 0 else z1_low)
         logging.info(f"Zone {zone}: Max temp {max_temp} is below low threshold. Setting duty cycle to LOW.")
+
 
 while True:
     try:
