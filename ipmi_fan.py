@@ -103,20 +103,25 @@ def get_high_temp(devices, temps):
 
 def populate_zone_temps(zone_devices, temps):
     """
-    Populate a dictionary with temperatures of devices in a specific zone.
+    Populate a dictionary with the maximum temperatures of devices in a specific zone.
     
     :param zone_devices: A list of device names in the zone.
     :param temps: A list of tuples containing device names and their corresponding temperatures.
-    :return: A dictionary mapping device names to their temperatures.
+    :return: A dictionary mapping device names to their maximum temperatures.
     """
     device_temps = {}
     
     for temp_entry in temps:
         try:
             device, value, unit, status = temp_entry.strip().split(',')
-            if ' Temp' in device and device.replace(' Temp', '') in zone_devices:
-                clean_device_name = device.replace(' Temp', '')
-                device_temps[clean_device_name] = int(value)
+            # Check if the status is 'ok'
+            if status == 'ok':
+                # Check if any zone_device is "in" the device name
+                for zone_device in zone_devices:
+                    if zone_device in device:
+                        temp_value = int(value)
+                        if zone_device not in device_temps or temp_value > device_temps[zone_device]:
+                            device_temps[zone_device] = temp_value
         except Exception as e:
             logging.error(f"Error processing entry '{temp_entry}': {e}")
     
