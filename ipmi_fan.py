@@ -252,8 +252,8 @@ if __name__ == "__main__":
             logger.debug(f"Zone 0 temperatures: {zone0_temps}")
             logger.debug(f"Zone 1 temperatures: {zone1_temps}")
 
-            determine_duty_cycle('zone0', zone0_temps, thresholds)
-            determine_duty_cycle('zone1', zone1_temps, thresholds)
+            determine_duty_cycle(0, zone0_temps, thresholds)
+            determine_duty_cycle(1, zone1_temps, thresholds)
 
         except Exception as e:
             logging.error(f"An error occurred: {e}")
