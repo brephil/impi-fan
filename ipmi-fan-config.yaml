@@ -1,10 +1,3 @@
-thresholds:
-  high_component_temp: 70
-  med_high_component_temp: 65
-  med_component_temp: 60
-  med_low_component_temp: 55
-  low_component_temp: 50
-
 duty_cycles:
   z0:
     high: 100

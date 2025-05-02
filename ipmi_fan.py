@@ -16,11 +16,6 @@ logger.addHandler(log_handler)
 with open('ipmi-fan-config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-high_component_temp = config['thresholds']['high_component_temp']
-med_high_component_temp = config['thresholds']['med_high_component_temp']
-med_component_temp = config['thresholds']['med_component_temp']
-med_low_component_temp = config['thresholds']['med_low_component_temp']
-low_component_temp = config['thresholds']['low_component_temp']
 
 z0_high = config['duty_cycles']['z0']['high']
 z0_med_high = config['duty_cycles']['z0']['med_high']
@@ -36,6 +31,15 @@ z1_low = config['duty_cycles']['z1']['low']
 
 zone0 = [component for component in config['zones']['zone0']['components']]
 zone1 = [component for component in config['zones']['zone1']['components']]
+
+# Extract thresholds and duty cycles from the configuration
+thresholds = {
+    'high': config['thresholds']['high_component_temp'],
+    'med_high': config['thresholds']['med_high_component_temp'],
+    'med': config['thresholds']['med_component_temp'],
+    'med_low': config['thresholds']['med_low_component_temp'],
+    'low': config['thresholds']['low_component_temp']
+}
 
 
 def get_temps():
@@ -159,57 +163,47 @@ current_fan_mode = get_fan_mode()
 if current_fan_mode != 1:
     set_fan_mode("full")
 
-def check_and_set_duty_cycle(zone, temps, high_threshold, med_high_threshold, med_threshold, med_low_threshold, low_threshold):
-    """
-    Check the maximum temperature in a zone and set the fan duty cycle accordingly.
-    
-    :param zone: The zone number (0 or 1).
-    :param temps: A dictionary mapping device names to their temperatures.
-    :param high_threshold: The high temperature threshold for setting the fan duty cycle.
-    :param med_high_threshold: The medium-high temperature threshold.
-    :param med_threshold: The medium temperature threshold.
-    :param med_low_threshold: The medium-low temperature threshold.
-    :param low_threshold: The low temperature threshold.
-    """
-    max_temp = 0
-    for device in temps:
-        if temps[device] > max_temp:
-            max_temp = temps[device]
-        logging.info(f"Device: {device}, Temperature: {temps[device]}")
-    logging.info(f"Max temperature in Zone {zone}: {max_temp}")
-    
-    # Define thresholds for each zone based on YAML configuration
-    if zone == 0:
-        high_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][0] for comp in config['zones']['zone0']['components']]
-        med_high_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][1] for comp in config['zones']['zone0']['components']]
-        med_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][2] for comp in config['zones']['zone0']['components']]
-        med_low_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][3] for comp in config['zones']['zone0']['components']]
-        low_thresholds = [config['zones']['zone0']['components'][comp]['thresholds'][4] for comp in config['zones']['zone0']['components']]
+# Determine the appropriate duty cycle based on individual device thresholds
+def determine_duty_cycle(zone, component_temps, thresholds):
+    high_thresholds = []
+    med_high_thresholds = []
+    med_thresholds = []
+    med_low_thresholds = []
 
-    elif zone == 1:
-        high_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][0] for comp in config['zones']['zone1']['components']]
-        med_high_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][1] for comp in config['zones']['zone1']['components']]
-        med_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][2] for comp in config['zones']['zone1']['components']]
-        med_low_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][3] for comp in config['zones']['zone1']['components']]
-        low_thresholds = [config['zones']['zone1']['components'][comp]['thresholds'][4] for comp in config['zones']['zone1']['components']]
+    for component, temp in component_temps.items():
+        if temp is None:
+            continue
 
-    # Determine the appropriate duty cycle based on individual device thresholds
-    if any(temp > high_threshold for temp in high_thresholds):
+        # Find the appropriate threshold for each component
+        comp_thresholds = thresholds[zone].get(component, [])
+        high_thresholds.append(comp_thresholds[0] if len(comp_thresholds) > 0 else float('inf'))
+        med_high_thresholds.append(comp_thresholds[1] if len(comp_thresholds) > 1 else float('inf'))
+        med_thresholds.append(comp_thresholds[2] if len(comp_thresholds) > 2 else float('inf'))
+        med_low_thresholds.append(comp_thresholds[3] if len(comp_thresholds) > 3 else float('inf'))
+
+    max_temp = max(component_temps.values())
+    max_component, _ = max(component_temps.items(), key=lambda item: item[1])
+
+    # Correctly define the thresholds for the specific zone
+    z0_high, z0_med_high, z0_med, z0_med_low, z0_low = thresholds['zone0'].values()
+    z1_high, z1_med_high, z1_med, z1_med_low, z1_low = thresholds['zone1'].values()
+
+    # Use the correct variables in the if-else statements
+    if any(temp > max(high_thresholds) for temp in component_temps.values()):
         set_zone_duty_cycle(zone, z0_high if zone == 0 else z1_high)
-        logging.info(f"Zone {zone}: Max temp {max_temp} is above high threshold. Setting duty cycle to HIGH.")
-    elif any(temp > med_high_threshold for temp in med_high_thresholds):
+        logging.info(f"Zone {zone}: Max temp {max_temp} from component '{max_component}' is above it's high threshold. Setting duty cycle to HIGH.")
+    elif any(temp > max(med_high_thresholds) for temp in component_temps.values()):
         set_zone_duty_cycle(zone, z0_med_high if zone == 0 else z1_med_high)
-        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
-    elif any(temp > med_threshold for temp in med_thresholds):
+        logging.info(f"Zone {zone}: Max temp {max_temp} from component '{max_component}' is above it's medium-high threshold. Setting duty cycle to MEDIUM-HIGH.")
+    elif any(temp > max(med_thresholds) for temp in component_temps.values()):
         set_zone_duty_cycle(zone, z0_med if zone == 0 else z1_med)
-        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium threshold. Setting duty cycle to MEDIUM.")
-    elif any(temp > med_low_threshold for temp in med_low_thresholds):
+        logging.info(f"Zone {zone}: Max temp {max_temp} from component '{max_component}' is above it's medium threshold. Setting duty cycle to MEDIUM.")
+    elif any(temp > max(med_low_thresholds) for temp in component_temps.values()):
         set_zone_duty_cycle(zone, z0_med_low if zone == 0 else z1_med_low)
-        logging.info(f"Zone {zone}: Max temp {max_temp} is above medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
+        logging.info(f"Zone {zone}: Max temp {max_temp} from component '{max_component}' is above it's medium-low threshold. Setting duty cycle to MEDIUM-LOW.")
     else:
         set_zone_duty_cycle(zone, z0_low if zone == 0 else z1_low)
-        logging.info(f"Zone {zone}: Max temp {max_temp} is below low threshold. Setting duty cycle to LOW.")
-
+        logging.info(f"Zone {zone}: Max temp {max_temp} from component '{max_component}' is below it's low threshold. Setting duty cycle to LOW.")
 
 while True:
     try:
@@ -222,8 +216,8 @@ while True:
         logger.debug(f"Zone 0 temperatures: {zone0_temps}")
         logger.debug(f"Zone 1 temperatures: {zone1_temps}")
         
-        check_and_set_duty_cycle(0, zone0_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
-        check_and_set_duty_cycle(1, zone1_temps, high_component_temp, med_high_component_temp, med_component_temp, med_low_component_temp, low_component_temp)
+        determine_duty_cycle(0, zone0_temps, thresholds)
+        determine_duty_cycle(1, zone1_temps, thresholds)
  
     except Exception as e:
         logging.error(f"An error occurred: {e}")
