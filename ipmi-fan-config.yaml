@@ -14,71 +14,62 @@ duty_cycles:
 
 zones:
   # Supermicro Superserver
-  zone0: #zone numer
-    components:
-      CPU1:
-        thresholds: [70, 65, 60, 55, 50]
-      MB_NIC:
-        thresholds: [95, 80, 70, 65, 60]
-      Vcpu1VRM:
-        thresholds: [70, 65, 60, 55, 50]
-      P1-DIMM:
-        thresholds: [70, 65, 60, 55, 50]
-      PCH:
-        thresholds: [70, 65, 60, 55, 50]
-      System:
-        thresholds: [70, 65, 60, 55, 50]
+  #zone0: #zone numer
+  #  components:
+  #    CPU1:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    MB_NIC:
+  #      thresholds: [95, 80, 70, 65, 60]
+  #    Vcpu1VRM:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    P1-DIMM:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    PCH:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    System:
+  #      thresholds: [70, 65, 60, 55, 50]
 
-  zone1:
-    components:
-      CPU2:
-        thresholds: [70, 65, 60, 55, 50]
-      Vcpu2VRM:
-        thresholds: [70, 65, 60, 55, 50]
-      P2-DIMM:
-        thresholds: [70, 65, 60, 55, 50]
-      PCH:
-        thresholds: [70, 65, 60, 55, 50]
-      System:
-        thresholds: [70, 65, 60, 55, 50]
+  #zone1:
+  #  components:
+  #    CPU2:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    Vcpu2VRM:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    P2-DIMM:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    PCH:
+  #      thresholds: [70, 65, 60, 55, 50]
+  #    System:
+  #      thresholds: [70, 65, 60, 55, 50]
 
   # Supermicro X10 and X11 MBs (commented out)
-  # zone0:
-  #   components:
-  #     CPU1:
-  #       thresholds: [75, 70, 65, 60, 55]
-  #     CPU2:
-  #       thresholds: [75, 70, 65, 60, 55]
-  #     Vcpu1VRM:
-  #       thresholds: [72, 67, 62, 57, 52]
-  #     Vcpu2VRM:
-  #       thresholds: [72, 67, 62, 57, 52]
-  #     P1-DIMM:
-  #       thresholds: [60, 55, 50, 45, 40]
-  #     P2-DIMM:
-  #       thresholds: [60, 55, 50, 45, 40]
-  #     PCH:
-  #       thresholds: [65, 60, 55, 50, 45]
-  #     System:
-  #       thresholds: [63, 58, 53, 48, 43]
-  #     VRM:
-  #       thresholds: [78, 73, 68, 63, 58]
-  #     DIMM:
-  #       thresholds: [62, 57, 52, 47, 42]
+   zone0:
+     components:
+       CPU1:
+         thresholds: [75, 70, 65, 60, 55]
+       CPU2:
+         thresholds: [75, 70, 65, 60, 55]
+       Vcpu1VRM:
+         thresholds: [72, 67, 62, 57, 52]
+       Vcpu2VRM:
+         thresholds: [72, 67, 62, 57, 52]
+       P1-DIMM:
+         thresholds: [60, 55, 50, 45, 40]
+       P2-DIMM:
+         thresholds: [60, 55, 50, 45, 40]
+       PCH:
+         thresholds: [65, 60, 55, 50, 45]
+       System:
+         thresholds: [63, 58, 53, 48, 43]
+       VRM:
+         thresholds: [78, 73, 68, 63, 58]
 
-  # zone1:
-  #   components:
-  #     Peripheral:
-  #       thresholds: [60, 55, 50, 45, 40]
-  #     MB_10G:
-  #       thresholds: [65, 60, 55, 50, 45]
-  #     SAS:
-  #       thresholds: [68, 63, 58, 53, 48]
-  #     HDD:
-  #       thresholds: [72, 67, 62, 57, 52]
-  #     PCH:
-  #       thresholds: [65, 60, 55, 50, 45]
-  #     System:
-  #       thresholds: [63, 58, 53, 48, 43]
-  #     M2NVMeSSD:
-  #       thresholds: [70, 65, 60, 55, 50]
+
+   zone1:
+     components:
+       Peripheral:
+         thresholds: [60, 55, 50, 45, 40]
+       MB_10G:
+         thresholds: [95, 80, 70, 65, 60]
+       M2NVMeSSD :
+         thresholds: [70, 65, 60, 55, 50]
