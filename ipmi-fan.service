@@ -7,6 +7,8 @@ Conflicts=getty@tty1.service
 Type=simple
 ExecStart=/usr/bin/python3 /usr/bin/ipmi_fan.py
 StandardInput=tty-force
+StandardOutput=append:/var/log/ipmi-fan.log
+StandardError=append:/var/log/ipmi-fan.log
 
 [Install]
 WantedBy=multi-user.target

@@ -214,7 +214,7 @@ if __name__ == "__main__":
         logger.addHandler(console_handler)
 
     # Load YAML configuration
-    with open('ipmi-fan-config.yaml', 'r') as file:
+    with open('/etc/ipmi-fan-control/ipmi-fan-config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
 
