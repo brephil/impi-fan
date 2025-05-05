@@ -14,7 +14,7 @@ duty_cycles:
 
 zones:
   # Supermicro Superserver
-  0: #zone numer
+  zone0: #zone numer
     components:
       CPU1:
         thresholds: [70, 65, 60, 55, 50]
@@ -29,7 +29,7 @@ zones:
       System:
         thresholds: [70, 65, 60, 55, 50]
 
-  1:
+  zone1:
     components:
       CPU2:
         thresholds: [70, 65, 60, 55, 50]

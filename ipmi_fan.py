@@ -143,12 +143,15 @@ def determine_duty_cycle(zone, component_temps, thresholds):
     med_thresholds = []
     med_low_thresholds = []
 
+    # Use the correct variables in the if-else statements
+    zone_str = 'zone0' if zone == 0 else 'zone1'
+
     for component, temp in component_temps.items():
         if temp is None:
             continue
 
         # Find the appropriate threshold for each component
-        comp_thresholds = thresholds[zone].get(component, [])       
+        comp_thresholds = thresholds[zone_str].get(component, [])       
         high_thresholds.append(comp_thresholds['thresholds'][0] if len(comp_thresholds['thresholds']) > 0 else float('inf'))
         med_high_thresholds.append(comp_thresholds['thresholds'][1] if len(comp_thresholds['thresholds']) > 1 else float('inf'))
         med_thresholds.append(comp_thresholds['thresholds'][2] if len(comp_thresholds['thresholds']) > 2 else float('inf'))
