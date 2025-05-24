@@ -1,23 +1,65 @@
-# ipmi-fan-control
+# IPMI Fan Control Script
 
-For anyone wishing to use stock fans on their Supermicro build this will help keep the noise down and make sure there is plenty of cooling available on tap.
+## Overview
+This script is designed to control the fan speed on servers using Intelligent Platform Management Interface (IPMI) tools. The script monitors temperature readings from various components and adjusts the fan duty cycle based on predefined thresholds. This ensures optimal cooling of the server, preventing overheating while minimizing noise.
 
-I started with this project with the goal of keeping my SC-836 chasis unmodified keeping all orignal plug-in play fans in place.  This script works with any X10 generation Supermicro motherboard.
+### Key Features
+- Temperature Monitoring: Fetches temperature data from IPMI sensors.
+- Fan Mode Control: Adjusts fan speed based on current temperatures.
+- Configuration via YAML File: Allows customization of thresholds and duty cycles.
+- Test Mode: Simulates the script's operation using a test file for local development.
+- Logging: Provides detailed logs to help with debugging and monitoring.
 
-Note:
-I found that active coolers SNK-P0048AP4 work best.  I have an air shoud as well but not sure it is really needed.  What I've noticed the shroud helped address CPU cooling with the passive coolers, but have not tested without the active coolers.
+### Requirements
+- Python 3.x
+- ipmitool installed on the server.
+- Access to the IPMI interface of the server. 
 
-My temps under load (70-80%) are stable at 57c for each CPU (2 x E5-2660 V3).  43.7 dB is the average sound at full system load (duty cycle 30 is all that is needed).  Idle tems in the 30s.
+### Installation
+1. Clone the GitHub repository and navigate to the project directory then run the installation script:
+~~~ Bash
+git clone https://github.com/yourusername/ipmi-fan-control.git
+cd ipmi-fan-control
+chmod +x setup_ipmi_fan.sh
+sudo ./setup_ipmi_fan.sh
+~~~
+2. The script will enable and start the systemd service for IPMI fan control. It also checks if the service is running successfully.
 
-As to the script:
 
-I'm monitoring two zones:
-zone0 = ['CPU','VRM','DIMM'] #FAN1-6 (Compute Resources)
-zone1 = ['SAS','HDD','PCH']  #FANA and FANB (Storage and PCI)
+### Configuration
+Edit the `/etc/ipmi-fan-control/config.yaml` file to set up thresholds and duty cycles for different fan modes. The default configuration is suitable for most use cases, but you can customize it as needed.
 
-zone0 = FAN0 - FAN6
-zone1 = FANA and FANB
+### Usage
+To run the script manually, execute:  
+~~~ Bash
+python3 ipmi_fan_control.py
+~~~
+For testing purposes, you can use the test mode by providing a test file:  
+~~~ Bash
+python3 ipmi_fan_control.py --test /path/to/test_file.yaml
+~~~
 
-The script checks once a second and adjusts each zone unless a HDD exceeds a max temp and all fans go crazy full!
+### Systemd Service
+The script includes a systemd service file located at `/etc/systemd/system/ipmi-fan-control.service`. This allows the script to run as a background service on system startup. To enable and start the service, use the following commands:
+~~~ Bash
+sudo systemctl enable ipmi-fan-control.service
+sudo systemctl start ipmi-fan-control.service
+~~~ 
+To check the status of the service, use:
+~~~ Bash
+sudo systemctl status ipmi-fan-control.service
+~~~ 
+To stop and disable the service, use:
+~~~ Bash
+sudo systemctl stop ipmi-fan-control.service
+sudo systemctl disable ipmi-fan-control.service
+~~~
+### Logging
+Logs are stored in `/var/log/ipmi-fan-control.log`. You can view them using `tail -f` or any other log viewer.
 
-I have this running as a service using systemctl.  
+
+
+
+      
+
+

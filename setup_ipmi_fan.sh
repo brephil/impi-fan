@@ -9,6 +9,23 @@ DEST_BIN_DIR="/usr/bin"
 DEST_SYSTEMD_DIR="/etc/systemd/system"
 DEST_CONFIG_DIR="/etc/ipmi-fan-control"
 
+# Install required Python packages if not already installed
+if ! pip3 show pyyaml &> /dev/null; then
+    echo "pyyaml package is not installed. Installing now..."
+    sudo apt-get update
+    sudo apt-get install -y python3-pip
+    sudo pip3 install pyyaml
+    echo "Installed pyyaml package."
+fi
+
+if ! pip3 show argparse &> /dev/null; then
+    echo "argparse package is not installed. Installing now..."
+    sudo apt-get update
+    sudo apt-get install -y python3-pip
+    sudo pip3 install argparse
+    echo "Installed argparse package."
+fi
+
 # Create the destination configuration directory if it doesn't exist
 if [ ! -d "$DEST_CONFIG_DIR" ]; then
     sudo mkdir -p "$DEST_CONFIG_DIR"
